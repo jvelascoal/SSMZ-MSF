@@ -75,7 +75,7 @@ python ssmz_msf.py grid|graph <data_file> <alpha> <mode> [h1|h2] [time] [draw] [
 
 | Argument     | Description                                                               |
 |--------------|--------------------------------------------------------------------------|
-| `grid|graph` | Input type: `grid` for a rectangular lattice, `graph` for a general planar graph (see [Input format](#input-format)). |
+| `grid` \| `graph` | Input type: `grid` for a rectangular lattice, `graph` for a general planar graph (see [Input format](#input-format)). |
 | `data_file`  | Path to the data file.                                                    |
 | `alpha`      | Homogeneity threshold `α ∈ (0,1)` (e.g. `0.5`, `0.7`, `0.9`).             |
 | `mode`       | `h1` \| `h2` \| `lazy` \| `flow`.                                         |
@@ -123,9 +123,28 @@ followed by `m` lines of `n` space-separated numeric values (one per grid cell):
 ```
 
 The grid adjacency (incidence) structure is generated automatically; no separate
-incidence file is required. Cells with a non-positive value are treated as no-data
-and excluded from the homogeneity computation, allowing irregular field shapes.
-Example: [`examples/field_6x7.txt`](examples/field_6x7.txt).
+incidence file is required. Example: [`examples/field_6x7.txt`](examples/field_6x7.txt).
+
+**Irregular fields (no-data cells).** Cells with a non-positive value (e.g. `0`)
+are treated as no-data: they are removed from the graph and excluded from the
+homogeneity computation, so the remaining cells form an irregular field. For
+example, [`examples/field_6x7_masked.txt`](examples/field_6x7_masked.txt) masks
+five cells of the 6×7 field (the grid equivalent of
+[`examples/graph_irregular.txt`](examples/graph_irregular.txt)):
+
+```
+6 7
+10.7 15.4 13.9 16.1 15.6 16.6 16.6
+11.7 16.0 13.8 12.6 14.4 15.4 11.2
+15.1 12.6 0 16.8 10.5 18.7 10.4
+16.3 12.7 0 11.4 11.5 16.7 13.5
+14.1 11.1 14.5 15.0 14.13 9.6 12.5
+11.8 12.8 14.9 14.0 0 0 0
+```
+
+```bash
+python ssmz_msf.py grid examples/field_6x7_masked.txt 0.7 h2 draw output
+```
 
 ### `graph` mode
 
@@ -162,7 +181,8 @@ For each run, `resultados/` may contain:
 
 ## Reproducing the illustrative example
 
-The 6×7 field in `examples/field_6x7.txt` reproduces the *Software Impacts* article example. For `α = 0.5`, heuristic `h2` returns
+The 6×7 field in `examples/field_6x7.txt` (benchmark Class 1 from Cid-Garcia et al., 2013)
+reproduces the *Software Impacts* article example. For `α = 0.5`, heuristic `h2` returns
 **6 contiguous zones** with homogeneity **H ≈ 0.566** in well under a second:
 
 ```bash
