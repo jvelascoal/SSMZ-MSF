@@ -217,7 +217,7 @@ The underlying greedy spanning-tree heuristic was introduced in:
 
 - **Luis E. Urbán-Rivero** — Instituto Tecnológico Autónomo de México (ITAM), Mexico City, Mexico. <luis.urban@itam.mx>
 - **Jonás Velasco** — SECIHTI / Centro de Investigación en Matemáticas (CIMAT),
-  Aguascalientes, Mexico. <jvelasco@cimat.mx>
+  Aguascalientes, Mexico. <jvelasco@cimat.mx> or <luis.urban@itam.mx>
 
 ## Support
 
