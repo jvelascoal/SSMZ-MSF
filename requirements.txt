@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------------
+# SSMZ-MSF runtime dependencies
+# ---------------------------------------------------------------------------
+# Core (required)
+gurobipy>=11.0      # MILP/MINLP solver bindings; requires a valid Gurobi license
+networkx>=3.0       # grid-graph construction and cycle detection
+numpy>=1.21         # numerical utilities
+
+# ---------------------------------------------------------------------------
+# Optional (enable additional output features; safe to omit)
+# ---------------------------------------------------------------------------
+# matplotlib>=3.5   # static convergence plots (PDF/PNG) with the `plot` flag
+# plotly>=5.0       # interactive HTML convergence plots with the `plot` flag
+# grblogtools>=3.0  # higher-quality parsing of Gurobi logs for convergence plots
+# pygraphviz>=1.9   # node-link zone maps in `graph` mode (`draw` flag)
+#
+# System dependencies (not installable via pip), only for the `draw` flag:
+#   - A LaTeX distribution providing `pdflatex` (e.g. TeX Live) renders the
+#     TikZ management-zone maps in `grid` mode.
+#   - Graphviz (the `dot` toolkit, backing pygraphviz) renders the node-link
+#     maps in `graph` mode.
