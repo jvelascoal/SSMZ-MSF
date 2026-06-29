@@ -8,7 +8,7 @@
 **An open-source solver for optimal site-specific management zone delineation via minimum spanning forests.**
 
 SSMZ-MSF partitions an agricultural field, sampled on a rectangular grid, into the
-**minimum number of spatially contiguous management zones** such that each zone meets a
+minimum number of spatially contiguous management zones such that each zone meets a
 user-defined within-zone homogeneity threshold `α`. The problem is modeled as a
 graph-partitioning problem in which every zone induces a tree, so the whole partition is a
 *minimum spanning forest* of the field.
@@ -109,7 +109,7 @@ Running `python ssmz_msf.py` without arguments prints the full usage help.
 
 ### `grid` mode
 
-A plain-text file whose **first line** gives the grid dimensions `m n` (rows, columns),
+A plain-text file whose first line gives the grid dimensions `m, n` (rows, columns),
 followed by `m` lines of `n` space-separated numeric values (one per grid cell):
 
 ```
@@ -148,8 +148,8 @@ python ssmz_msf.py grid examples/field_6x7_masked.txt 0.7 h2 draw output
 
 ### `graph` mode
 
-A plain-text file describing a general planar adjacency graph. The **first line**
-gives `n m` (number of vertices, number of edges), followed by `n` lines
+A plain-text file describing a general planar adjacency graph. The first line
+gives `n, m` (number of vertices, number of edges), followed by `n` lines
 `vertex_id value` and then `m` lines `u v` listing the edges:
 
 ```
@@ -182,7 +182,7 @@ For each run, `resultados/` may contain:
 ## Reproducing the illustrative example
 
 The 6×7 field in `examples/field_6x7.txt` reproduces the *Software Impacts* article example. For `α = 0.5`, heuristic `h2` returns
-**6 contiguous zones** with homogeneity **H ≈ 0.566** in well under a second:
+6 contiguous zones with homogeneity H ≈ 0.566 in well under a second:
 
 ```bash
 python ssmz_msf.py grid examples/field_6x7.txt 0.5 h2 draw output
