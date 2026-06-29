@@ -181,8 +181,7 @@ For each run, `resultados/` may contain:
 
 ## Reproducing the illustrative example
 
-The 6×7 field in `examples/field_6x7.txt` (benchmark Class 1 from Cid-Garcia et al., 2013)
-reproduces the *Software Impacts* article example. For `α = 0.5`, heuristic `h2` returns
+The 6×7 field in `examples/field_6x7.txt` reproduces the *Software Impacts* article example. For `α = 0.5`, heuristic `h2` returns
 **6 contiguous zones** with homogeneity **H ≈ 0.566** in well under a second:
 
 ```bash
