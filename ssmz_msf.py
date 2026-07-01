@@ -88,7 +88,7 @@ def generate_convergence_plot(logfile, output_filename):
     Returns:
         bool: True if plots were generated successfully, False otherwise
     """
-    # Check if grblogtools is available
+    
     if not check_and_import_grblogtools():
         print("Warning: grblogtools not installed. Please run:")
         print("  python -m pip install grblogtools")
@@ -103,17 +103,14 @@ def generate_convergence_plot(logfile, output_filename):
         return False
     
     try:
-        # Parse the log file using grblogtools
         results = glt.parse(logfile)
         
-        # Extract the progress data (nodelog)
         progress_data = results.progress("nodelog")
         
         if progress_data is None or progress_data.empty:
             print(f"Warning: No nodelog data found in {logfile}. Skipping plot.")
             return False
         
-        # Extract metadata for title
         import os
         log_basename = os.path.basename(logfile)
         
@@ -125,11 +122,8 @@ def generate_convergence_plot(logfile, output_filename):
                 import matplotlib.pyplot as plt
                 import matplotlib.ticker as ticker
                 
-                # Create figure with two subplots
                 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
                 
-                # ----- Plot 1: Incumbent and Best Bound -----
-                # Check which columns are available
                 has_incumbent = 'Incumbent' in progress_data.columns
                 has_bestbd = 'BestBd' in progress_data.columns
                 has_gap = 'Gap' in progress_data.columns
@@ -151,11 +145,11 @@ def generate_convergence_plot(logfile, output_filename):
                 ax1.legend(loc='best')
                 ax1.grid(True, alpha=0.3)
                 
-                # Format x-axis ticks
+
                 ax1.xaxis.set_major_formatter(ticker.FuncFormatter(
                     lambda x, p: f'{int(x)}' if x < 1000 else f'{x/1000:.1f}k'))
                 
-                # ----- Plot 2: MIP Gap -----
+
                 if has_gap:
                     ax2.plot(progress_data['Time'], progress_data['Gap'], 
                             'g-', label='MIP Gap (%)', linewidth=2)
@@ -172,9 +166,8 @@ def generate_convergence_plot(logfile, output_filename):
                 ax2.xaxis.set_major_formatter(ticker.FuncFormatter(
                     lambda x, p: f'{int(x)}' if x < 1000 else f'{x/1000:.1f}k'))
                 
-                # Add overall title with metadata
+
                 try:
-                    # Try to get model name from results
                     model_name = results.solver_info.get('ModelName', '')
                     if model_name:
                         plt.suptitle(f'Gurobi Convergence Analysis\nModel: {model_name}', fontsize=14)
@@ -185,10 +178,8 @@ def generate_convergence_plot(logfile, output_filename):
                 
                 plt.tight_layout()
                 
-                # Save as PDF (vector quality for publications)
                 plt.savefig(output_filename + '.pdf', dpi=300, bbox_inches='tight', format='pdf')
                 
-                # Save as PNG (for presentations/web)
                 plt.savefig(output_filename + '.png', dpi=300, bbox_inches='tight')
                 
                 plt.close()
@@ -209,7 +200,7 @@ def generate_convergence_plot(logfile, output_filename):
             try:
                 import plotly.express as px
                 
-                # Define columns to plot
+
                 y_columns = []
                 if 'Incumbent' in progress_data.columns:
                     y_columns.append('Incumbent')
@@ -219,7 +210,6 @@ def generate_convergence_plot(logfile, output_filename):
                     y_columns.append('Gap')
                 
                 if y_columns:
-                    # Create interactive plot
                     fig = px.line(progress_data, 
                                   x="Time", 
                                   y=y_columns,
@@ -227,7 +217,6 @@ def generate_convergence_plot(logfile, output_filename):
                                   labels={"value": "Value", "Time": "Time (seconds)", 
                                           "variable": "Metric"})
                     
-                    # Save as HTML (interactive)
                     fig.write_html(output_filename + '.html')
                     print(f"  Interactive HTML saved to: {output_filename}.html")
                 else:
@@ -268,8 +257,7 @@ def generate_convergence_plot_matplotlib_only(logfile, output_filename):
     try:
         import matplotlib.pyplot as plt
         import matplotlib.ticker as ticker
-        
-        # Parse log file manually (fallback method)
+
         times = []
         incumbents = []
         best_bounds = []
@@ -277,18 +265,12 @@ def generate_convergence_plot_matplotlib_only(logfile, output_filename):
         
         with open(logfile, 'r') as f:
             for line in f:
-                # Look for nodelog lines
-                # Format: "  0     0    0.00000    0.00000    0.00%"
                 parts = line.strip().split()
-                
                 if len(parts) >= 5:
                     try:
-                        # Try to identify if this is a data line
-                        # Skip header lines
                         if parts[0] == 'Nodes' or parts[0] == 'H' or parts[0] == '*':
                             continue
                         
-                        # Check if we have numeric values
                         numeric_parts = []
                         for p in parts:
                             try:
@@ -297,15 +279,11 @@ def generate_convergence_plot_matplotlib_only(logfile, output_filename):
                                 pass
                         
                         if len(numeric_parts) >= 4:
-                            # Assume: [time, node_count, incumbent, best_bound, gap]
-                            # But the order can vary, so we need to be careful
-                            # Usually: time is first, incumbent is third, best_bound is fourth
                             time_val = numeric_parts[0]
                             incumbent = numeric_parts[2] if len(numeric_parts) > 2 else None
                             best_bound = numeric_parts[3] if len(numeric_parts) > 3 else None
                             gap = numeric_parts[4] if len(numeric_parts) > 4 else None
-                            
-                            # Also look for percentage in the line for gap
+                        
                             gap_str = None
                             for p in parts:
                                 if '%' in p:
@@ -328,10 +306,10 @@ def generate_convergence_plot_matplotlib_only(logfile, output_filename):
             print(f"Warning: No convergence data found in {logfile}. Skipping plot.")
             return False
         
-        # Create plots
+
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
         
-        # Plot 1: Incumbent and Best Bound
+
         ax1.plot(times, incumbents, 'b-', label='Incumbent (Best Solution)', linewidth=2)
         ax1.plot(times, best_bounds, 'r--', label='Best Bound', linewidth=2)
         ax1.set_xlabel('Time (seconds)')
@@ -340,7 +318,7 @@ def generate_convergence_plot_matplotlib_only(logfile, output_filename):
         ax1.legend(loc='best')
         ax1.grid(True, alpha=0.3)
         
-        # Plot 2: MIP Gap
+
         if gaps:
             ax2.plot(times, gaps, 'g-', label='MIP Gap (%)', linewidth=2)
             ax2.set_ylabel('MIP Gap (%)')
@@ -382,7 +360,7 @@ def generate_convergence_plot_full(logfile, output_filename, method='auto'):
     Returns:
         bool: True if plots were generated successfully, False otherwise
     """
-    # Try grblogtools first (preferred)
+
     if method == 'auto' or method == 'grblogtools':
         if check_and_import_grblogtools():
             success = generate_convergence_plot(logfile, output_filename)
@@ -391,7 +369,7 @@ def generate_convergence_plot_full(logfile, output_filename, method='auto'):
             else:
                 print("  grblogtools method failed, trying matplotlib fallback...")
     
-    # Fallback to matplotlib manual parsing
+
     if method == 'auto' or method == 'matplotlib':
         return generate_convergence_plot_matplotlib_only(logfile, output_filename)
     
@@ -424,52 +402,45 @@ def create_graph(m, n, c):
     N = m * n
     G = nx.Graph()
     
-    # First, identify valid nodes (c > 0)
+  
     valid_nodes = []
-    node_map = {}  # Original index -> New vertex ID
-    reverse_map = {}  # New vertex ID -> Original index
+    node_map = {}  
+    reverse_map = {} 
     
-    # We'll use original indices for valid nodes (0..N-1)
-    # and keep the sink as N
+
     for i in range(N):
         if dj.get_datos(c, i, n) > 0:
             valid_nodes.append(i)
-            node_map[i] = i  # Keep original ID
+            node_map[i] = i  
             reverse_map[i] = i
     
     num_valid = len(valid_nodes)
     print(f"  Valid nodes: {num_valid} out of {N} (removed {N - num_valid} nodes with c <= 0)")
     
-    # Add valid vertices to the graph using their original indices
     for v in valid_nodes:
         G.add_node(v)
         G.nodes[v]['sample'] = dj.get_datos(c, v, n)
         G.nodes[v]['original_index'] = v
         G.nodes[v]['valid'] = True
     
-    # Add sink node with ID = N (m*n)
     sink_id = N
     G.add_node(sink_id)
     G.nodes[sink_id]['sample'] = None
     G.nodes[sink_id]['original_index'] = -1
     G.nodes[sink_id]['valid'] = True
     
-    # Add edges between adjacent valid vertices
+
     for orig_i in valid_nodes:
-        # Check right neighbor (i+1)
         if orig_i + 1 in node_map:
-            # Check if it's a valid neighbor (not crossing row boundary)
-            if (orig_i + 1) % n != 0:  # Not crossing to next row
+            if (orig_i + 1) % n != 0:  
                 j = node_map[orig_i + 1]
                 i = orig_i
-                # Only add edge if both vertices are valid
                 G.add_edge(i, j)
                 G[i][j]['costo'] = round(abs(
                     dj.get_datos(c, i, n) - 
                     dj.get_datos(c, j, n)
                 ), 4)
         
-        # Check bottom neighbor (i+n)
         if orig_i + n in node_map:
             j = node_map[orig_i + n]
             i = orig_i
@@ -479,10 +450,10 @@ def create_graph(m, n, c):
                 dj.get_datos(c, j, n)
             ), 4)
     
-    # Connect all valid vertices to the sink node
+
     for k in valid_nodes:
         G.add_edge(k, sink_id)
-        G[k][sink_id]['costo'] = 0  # Sink edges have zero cost
+        G[k][sink_id]['costo'] = 0  
     data=nx.node_link_data(G)
     with open("salida.json","w",encoding="utf-8") as f:
         json.dump(data,f,indent=2,ensure_ascii=False)
@@ -510,12 +481,12 @@ def create_graph_noaux(m, n, c):
     N = m * n
     G = nx.Graph()
     
-    # First, identify valid nodes (c > 0)
+
     valid_nodes = []
-    node_map = {}  # Original index -> New vertex ID
-    reverse_map = {}  # New vertex ID -> Original index
+    node_map = {}  
+    reverse_map = {}  
     
-    # Use original indices for valid nodes
+ 
     for i in range(N):
         if dj.get_datos(c, i, n) > 0:
             valid_nodes.append(i)
@@ -525,25 +496,20 @@ def create_graph_noaux(m, n, c):
     num_valid = len(valid_nodes)
     print(f"  Valid nodes: {num_valid} out of {N} (removed {N - num_valid} nodes with c <= 0)")
     
-    # Add valid vertices to the graph using their original indices
     for v in valid_nodes:
         G.add_node(v)
         G.nodes[v]['sample'] = dj.get_datos(c, v, n)
         G.nodes[v]['original_index'] = v
         G.nodes[v]['valid'] = True
     
-    # Add edges between adjacent valid vertices
     for orig_i in valid_nodes:
-        # Check right neighbor (i+1)
         if orig_i + 1 in node_map:
-            if (orig_i + 1) % n != 0:  # Not crossing to next row
+            if (orig_i + 1) % n != 0: 
                 j = node_map[orig_i + 1]
                 i = orig_i
                 G.add_edge(i, j)
-                # Assign cost based on variance
                 G[i][j]['costo'] = round(abs(dj.get_datos(c, i, n) - dj.get_datos(c, j, n) ), 4)
         
-        # Check bottom neighbor (i+n)
         if orig_i + n in node_map:
             j = node_map[orig_i + n]
             i = orig_i
@@ -582,14 +548,13 @@ def load_data_graph(data_file, model_type, add_sink=True):
     if len(lines) < 2:
         raise ValueError(f"File {data_file} has insufficient data")
     
-    # First line: n m
+
     parts = lines[0].split()
     n = int(parts[0])
     m = int(parts[1])
     
     G = nx.Graph()
     
-    # Read vertices (n lines)
     line_idx = 1
     for i in range(n):
         if line_idx >= len(lines):
@@ -604,7 +569,6 @@ def load_data_graph(data_file, model_type, add_sink=True):
         G.add_node(v_id, sample=value)
         line_idx += 1
     
-    # Read edges (m lines)
     for i in range(m):
         if line_idx >= len(lines):
             raise ValueError(f"Expected {m} edges, got {i}")
@@ -616,20 +580,16 @@ def load_data_graph(data_file, model_type, add_sink=True):
         u = int(parts[0])
         v = int(parts[1])
         
-        # Edge cost: absolute difference between samples
         cost = round(abs(G.nodes[u]['sample'] - G.nodes[v]['sample']), 4)
         G.add_edge(u, v, costo=cost)
         line_idx += 1
     
-    # Verify graph is connected
     if not nx.is_connected(G):
         print(f"  WARNING: Graph is not connected! ({nx.number_connected_components(G)} components)")
     
-    # Add sink node if required (for flow model)
     if add_sink:
         sink_id = n
         G.add_node(sink_id, sample=0.0)
-        # Connect all vertices to sink with zero cost
         for u in G.nodes():
             if u != sink_id:
                 G.add_edge(u, sink_id, costo=0.0)
@@ -845,18 +805,15 @@ def aristas_component(G, lista):
     Returns:
         lista_aristas (dict): Dictionary mapping component index to list of edges within that component
     """
-    # First, create a mapping from vertex to component index
     vertex_to_comp = {}
     for idx, comp in enumerate(lista):
         for v in comp:
             vertex_to_comp[v] = idx
     
-    # Build edge list per component
     lista_aristas = {i: [] for i in range(len(lista))}
     
     for e in G.edges():
         u, v = e
-        # Check if both vertices are in the same component and component has more than 1 vertex
         if u in vertex_to_comp and v in vertex_to_comp:
             comp_idx = vertex_to_comp[u]
             if vertex_to_comp[v] == comp_idx and len(lista[comp_idx]) > 1:
@@ -892,7 +849,6 @@ def lazy_callback(model, where):
                 except KeyError:
                     arboles[k]=[]
                     arboles[k].append([u,v])
-        #print(arboles)
         for q in arboles:
             auxG=nx.Graph()
             aristaso=[]
@@ -949,19 +905,12 @@ def warm_start_trivial_grid(G, x, y, r, z, theta, K, model_type="flow"):
         n_colors = G.number_of_nodes()
         
     theta.start = K
-    # Initialize all to 0
     for k in range(0,K):
         r[k].start = 0.0
         z[k].start = 0.0
         for u in G.nodes():
             x[u, k].start = 0.0
         
-        #if model_type == "lazy":
-        #    for e in G.edges():
-        #        y[e[0], e[1], k].start = 0.0
-        #        y[e[1], e[0], k].start = 0.0
-    
-    # Each vertex gets its own color (color index = vertex index)
     k=0
     nodos=list(G.nodes())
     while k < K:
@@ -1007,19 +956,12 @@ def warm_start_trivial_graph(G, x, y, r, z, theta, K, model_type="flow"):
         n_colors = G.number_of_nodes()
         
     theta.start = K
-    # Initialize all to 0
     for k in range(0,K):
         r[k].start = 0.0
         z[k].start = 0.0
         for u in G.nodes():
             x[u, k].start = 0.0
-        
-        #if model_type == "lazy":
-        #    for e in G.edges():
-        #        y[e[0], e[1], k].start = 0.0
-        #        y[e[1], e[0], k].start = 0.0
-    
-    # Each vertex gets its own color (color index = vertex index)
+
     k=0
     nodos=list(G.nodes())
 
@@ -1074,7 +1016,6 @@ def warm_start_heuristic(G, x, y, r, z, theta, vertices, aristas, K, model_type,
     graph_sol.up_vars()
     H=graph_sol.calcH(VT)
     fobj=graph_sol.fobj(VT, 0.5)
-    # Resetear todo a 0 - SOLO para variables que existen
     if model_type == "flow":
         N = max(G.nodes())
     else:
@@ -1091,13 +1032,11 @@ def warm_start_heuristic(G, x, y, r, z, theta, vertices, aristas, K, model_type,
             for e in G.edges():
                 y[e[0], e[1], k].start = 0.0
     
-    # Activar colores usados
     n_components = len(vertices)
     n_colors_to_use = min(n_components, K)
     
     print(f"  Activating {n_colors_to_use} colors")
     
-    # Contadores para debug
     assigned_x = 0
     assigned_y = 0
    
@@ -1105,7 +1044,7 @@ def warm_start_heuristic(G, x, y, r, z, theta, vertices, aristas, K, model_type,
         r[k].start = 1.0
         z[k].start = len(vertices[k])
         
-        # Asignar x - VERIFICAR EXISTENCIA
+  
         for u in vertices[k]:
             x[u, k].start = 1.0
             assigned_x += 1
@@ -1113,17 +1052,12 @@ def warm_start_heuristic(G, x, y, r, z, theta, vertices, aristas, K, model_type,
             x[N, k].start = 1.0
             assigned_x += 1
         
-        # Asignar y - VERIFICAR EXISTENCIA
+
         G=nx.Graph()
         if model_type == "lazy":
             for e in aristas[k]:
                 y[e[0], e[1], k].start = 1.0
-            #    G.add_edge(e[0], e[1])
-            #    assigned_y += 1
-            #print("ES CONEXA",nx.is_connected(G))
-    theta.start = n_components
-    
-    # CRUCIAL: Actualizar el modelo
+    theta.start = n_components    
     model.update()
 
     
@@ -1156,9 +1090,8 @@ def verify_warm_start_feasibility(G,model, x, y, r, z, theta, vertices, aristas,
     """
     print("\n  === CHECKING WARM START FEASIBILITY ===")
     
-    # 1. Verificar que cada vértice tiene exactamente un color
     violations = 0
-    for u in G.nodes():  # Asumiendo que los vértices son 0..K-1
+    for u in G.nodes(): 
         if u != K:
             sum_x = 0
             for k in range(K):
@@ -1173,7 +1106,6 @@ def verify_warm_start_feasibility(G,model, x, y, r, z, theta, vertices, aristas,
     if violations == 0:
         print("  ✓ Each vertex has exactly 1 color")
     
-    # 2. Verificar que z[k] = sum(x[u,k]) para cada color
     violations = 0
     for k in range(K):
         if k in z:
@@ -1188,7 +1120,6 @@ def verify_warm_start_feasibility(G,model, x, y, r, z, theta, vertices, aristas,
     if violations == 0:
         print("  ✓ z variables are consistent")
     
-    # 3. Verificar que r[k] = 1 si z[k] > 0
     violations = 0
     for k in range(K):
         if k in r and k in z:
@@ -1203,14 +1134,12 @@ def verify_warm_start_feasibility(G,model, x, y, r, z, theta, vertices, aristas,
     if violations == 0:
         print("  ✓ r variables are consistent")
     
-    # 4. Verificar restricciones de aristas (si es modelo lazy)
     if model_type == "lazy":
         violations = 0
         for (i, j) in G.edges():
             if i != K and j != K:
                 for k in range(K):
                     if (i, j, k) in y and y[i, j, k].start == 1.0:
-                        # Verificar que ambos extremos tienen color k
                         if (i, k) not in x or x[i, k].start != 1.0:
                             print(f"  VIOLATION: Edge ({i},{j}) color {k} but vertex {i} doesn't have color {k}")
                             violations += 1
@@ -1225,7 +1154,7 @@ def verify_warm_start_feasibility(G,model, x, y, r, z, theta, vertices, aristas,
         if violations == 0:
             print("  ✓ Edge variables are consistent")
     
-    # 5. Verificar theta
+
     if theta.start is not None:
         sum_r = sum(1 for k in range(K) if k in r and r[k].start == 1.0)
         if abs(theta.start - sum_r) > 0.001:
@@ -1281,7 +1210,6 @@ def genera_colores_graph(n):
     """
     rnd.seed(45679)
     colores = []
-    # Ensure at least one color
     n_colors = max(n, 1)
     for k in range(0, n_colors + 1):
         r_val = rnd.uniform(0.2, 0.9)
@@ -1326,7 +1254,6 @@ def dibujo(nombre, m, n, c_nodos, seed=456):
         f.write("\\begin{document}\n")
         f.write("\\begin{tikzpicture}[scale=1.5]\n")
         
-        # Draw background rectangles first
         for k, nodos in nodos_dict.items():
             for p in nodos:
                 if p != N and p is not None:
@@ -1334,7 +1261,6 @@ def dibujo(nombre, m, n, c_nodos, seed=456):
                     j = p % n
                     f.write(f"\\fill[fill=col{str(k)},opacity=0.45]({j},{m-(i+1)}) rectangle ({j+1},{m-i});\n")
         
-        # Draw nodes on top
         for k, nodos in nodos_dict.items():
             for p in nodos:
                 if p != N and p is not None:
@@ -1397,20 +1323,17 @@ def dibujo2(nombre, G, m, n, c_nodos, c_arcos, seed=456):
         f.write("\\begin{document}\n")
         f.write("\\begin{tikzpicture}[scale=1.5]\n")
         
-        # First, define coordinates for ALL nodes (so edges can reference them)
         all_nodes = set()
         for nodos in v_list.values():
             for p in nodos:
                 if p != N and p is not None:
                     all_nodes.add(p)
         
-        # Define coordinates for each node
         for p in all_nodes:
             i = int(p / n)
             j = p % n
             f.write(f"\\coordinate (v{p}) at ({j+0.5},{m-i-0.5});\n")
         
-        # Draw background rectangles
         for k, nodos in v_list.items():
             color_idx = k % len(rgbt)
             for p in nodos:
@@ -1419,14 +1342,12 @@ def dibujo2(nombre, G, m, n, c_nodos, c_arcos, seed=456):
                     j = p % n
                     f.write(f"\\fill[fill=col{str(color_idx)},opacity=0.35]({j},{m-(i+1)}) rectangle ({j+1},{m-i});\n")
         
-        # Draw edges (now nodes coordinates exist)
         for k, aristas in e_list.items():
             color_idx = k % len(rgbt)
             for e in aristas:
                 if e[0] != N and e[1] != N:
                     f.write(f"\\draw[color=col{str(color_idx)},very thick,opacity=0.7] (v{e[0]}) -- (v{e[1]});\n")
         
-        # Draw nodes (as circles with labels)
         for k, nodos in v_list.items():
             color_idx = k % len(rgbt)
             for p in nodos:
@@ -1490,20 +1411,17 @@ def dibujo_heuristic(nombre, G, m, n, c_nodos, c_arcos, seed=456):
         f.write("\\begin{document}\n")
         f.write("\\begin{tikzpicture}[scale=1.5]\n")
         
-        # First, define coordinates for ALL nodes
         all_nodes = set()
         for nodos in v_list.values():
             for p in nodos:
                 if p != N:
                     all_nodes.add(p)
         
-        # Define coordinates for each node
         for p in all_nodes:
             i = int(p / n)
             j = p % n
             f.write(f"\\coordinate (v{p}) at ({j+0.5},{m-i-0.5});\n")
         
-        # Draw background rectangles
         for k, nodos in v_list.items():
             color_idx = k % len(rgbt)
             for p in nodos:
@@ -1512,14 +1430,13 @@ def dibujo_heuristic(nombre, G, m, n, c_nodos, c_arcos, seed=456):
                     j = p % n
                     f.write(f"\\fill[fill=col{str(color_idx)},opacity=0.45]({j},{m-(i+1)}) rectangle ({j+1},{m-i});\n")
         
-        # Draw edges
+
         for k, aristas in e_list.items():
             color_idx = k % len(rgbt)
             for e in aristas:
                 if e[0] != N and e[1] != N:
                     f.write(f"\\draw[color=col{str(color_idx)},line width=1.5pt,opacity=0.9] (v{e[0]}) -- (v{e[1]});\n")
         
-        # Draw nodes
         for k, nodos in v_list.items():
             color_idx = k % len(rgbt)
             for p in nodos:
@@ -1558,34 +1475,26 @@ def dibujo_graph_tikz(nombre, G, c_nodos, c_arcos, seed=456):
     Returns:
         None (creates .tex and .pdf files)
     """
-    # Generate positions using planar layout (no edge crossings)
     try:
-        # Try to get planar embedding first
         if nx.check_planarity(G)[0]:
-            # Use planar layout for proper planar embedding
             pos = nx.planar_layout(G, scale=2.0)
         else:
-            # Fallback to spring layout if graph is not planar
             print("  Warning: Graph is not planar, using spring layout")
             pos = nx.spring_layout(G, seed=seed, k=2.0, iterations=150)
     except Exception as e:
-        # Fallback to spring layout if planar layout fails
         print(f"  Warning: Planar layout failed ({e}), using spring layout")
         pos = nx.spring_layout(G, seed=seed, k=2.0, iterations=150)
     
-    # Convert c_nodos to dictionary format if it's a list
     if isinstance(c_nodos, list):
         v_list = {k: v for k, v in enumerate(c_nodos) if len(v) > 0}
     else:
         v_list = {k: v for k, v in c_nodos.items() if len(v) > 0}
     
-    # Convert c_arcos to dictionary format if it's a list
     if isinstance(c_arcos, list):
         e_list = {k: v for k, v in enumerate(c_arcos) if len(v) > 0}
     else:
         e_list = {k: v for k, v in c_arcos.items() if len(v) > 0}
-    
-    # Get number of components
+
     n_components = len(v_list)
     colores = genera_colores_graph(max(n_components, 1))
     
@@ -1595,17 +1504,15 @@ def dibujo_graph_tikz(nombre, G, c_nodos, c_arcos, seed=456):
         f.write("\\usepackage{tikz}\n")
         f.write("\\usetikzlibrary{patterns,positioning,shapes.geometric,backgrounds}\n")
         
-        # Define colors
+
         for k in range(len(colores)):
             r, g, b = colores[k]
             f.write(f"\\definecolor{{col{str(k)}}}{{rgb}}{{{r},{g},{b}}}\n")
         
         f.write("\\begin{document}\n")
         f.write("\\begin{tikzpicture}[scale=1.8, every node/.style={draw,circle,minimum size=0.7cm,font=\\small,inner sep=1pt}]\n")
-        
-        # Determine scale factor for node positioning
+
         if pos:
-            # Find min/max values
             all_x = [pos[v][0] for v in pos if v in pos]
             all_y = [pos[v][1] for v in pos if v in pos]
             
@@ -1615,7 +1522,7 @@ def dibujo_graph_tikz(nombre, G, c_nodos, c_arcos, seed=456):
                 range_x = max_x - min_x if max_x - min_x > 0 else 1
                 range_y = max_y - min_y if max_y - min_y > 0 else 1
                 
-                # Scale to [0, 10] range with some padding
+
                 scale = 10
                 padding = 0.5
                 for v in G.nodes():
@@ -1626,7 +1533,7 @@ def dibujo_graph_tikz(nombre, G, c_nodos, c_arcos, seed=456):
                         norm_y = ((y - min_y) / range_y) * (scale - 2 * padding) + padding
                         f.write(f"\\coordinate (v{v}) at ({norm_x},{norm_y});\n")
         
-        # Draw edges first (background)
+
         f.write("\\begin{scope}[on background layer]\n")
         for k, aristas in e_list.items():
             color_idx = k % len(colores)
@@ -1636,20 +1543,17 @@ def dibujo_graph_tikz(nombre, G, c_nodos, c_arcos, seed=456):
                     f.write(f"\\draw[color=col{str(color_idx)},line width=1.5pt,opacity=0.7] (v{u}) -- (v{v});\n")
         f.write("\\end{scope}\n")
         
-        # Draw nodes
+
         for k, nodos in v_list.items():
             color_idx = k % len(colores)
             for v in nodos:
                 if v in pos:
-                    # Get sample value (optional, for tooltip or label)
                     sample = G.nodes[v].get('sample', 0)
-                    # Draw node with component number
                     f.write(f"\\node[fill=col{str(color_idx)}!25, draw=col{str(color_idx)}!80, thick, text=black] at (v{v}) {{{v}:{k+1}}};\n")
         
         f.write("\\end{tikzpicture}\n")
         f.write("\\end{document}\n")
     
-    # Compile
     _outdir = os.path.dirname(nombre)
     _odflag = f"-output-directory={_outdir}" if _outdir else ""
     os.system(f"pdflatex --interaction=batchmode {_odflag} {nombre}.tex > /dev/null 2>&1")
@@ -1676,7 +1580,6 @@ def dibujo_graph_graphviz(nombre, G, c_nodos, c_arcos, seed=456):
         None (creates .pdf file)
     """
     try:
-        # Check if pygraphviz is available
         import pygraphviz as pgv
         has_graphviz = True
     except ImportError:
@@ -1688,22 +1591,18 @@ def dibujo_graph_graphviz(nombre, G, c_nodos, c_arcos, seed=456):
         return
     
     try:
-        # Convert c_nodos to dictionary format if it's a list
         if isinstance(c_nodos, list):
             v_list = {k: v for k, v in enumerate(c_nodos) if len(v) > 0}
         else:
             v_list = {k: v for k, v in c_nodos.items() if len(v) > 0}
         
-        # Convert c_arcos to dictionary format if it's a list
         if isinstance(c_arcos, list):
             e_list = {k: v for k, v in enumerate(c_arcos) if len(v) > 0}
         else:
             e_list = {k: v for k, v in c_arcos.items() if len(v) > 0}
         
-        # Create a directed graph for drawing
         A = nx.nx_agraph.to_agraph(G)
         
-        # Set graph attributes for better visualization
         A.graph_attr.update(
             splines="true",
             overlap="false",
@@ -1712,11 +1611,10 @@ def dibujo_graph_graphviz(nombre, G, c_nodos, c_arcos, seed=456):
             ranksep="0.5"
         )
         
-        # Generate colors
         n_components = len(v_list)
         colores = genera_colores_graph(n_components + 1)
         
-        # Create color mapping
+  
         color_map = {}
         for k, nodos in v_list.items():
             if len(nodos) > 0:
@@ -1725,16 +1623,14 @@ def dibujo_graph_graphviz(nombre, G, c_nodos, c_arcos, seed=456):
                 color = f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
                 for v in nodos:
                     color_map[v] = color
-        
-        # Apply colors to nodes
+
         for node in A.nodes():
             v_id = int(node)
             if v_id in color_map:
                 node.attr['fillcolor'] = color_map[v_id]
                 node.attr['style'] = 'filled'
                 node.attr['fontcolor'] = 'black'
-        
-        # Draw edges with component colors
+
         for k, aristas in e_list.items():
             if len(aristas) > 0:
                 color_idx = k % len(colores)
@@ -1746,7 +1642,7 @@ def dibujo_graph_graphviz(nombre, G, c_nodos, c_arcos, seed=456):
                         edge.attr['color'] = edge_color
                         edge.attr['penwidth'] = '2'
         
-        # Render to PDF
+
         A.write(nombre + '.gv')
         A.draw(nombre + '_gv.pdf', prog='neato', format='pdf')
         print(f"  Graphviz PDF saved to: {nombre}.pdf")
@@ -1788,7 +1684,6 @@ def infer_grid_from_solution(c_nodos, c_arcos):
     diffs = {abs(u - v) for u, v in edges if isinstance(u, int) and isinstance(v, int)}
     vertical = [d for d in diffs if d > 1]
     if not vertical:
-        # No vertical adjacency observed: cannot fix the column count reliably.
         return None
     ncol = min(vertical)
     if ncol < 2:
@@ -1883,7 +1778,6 @@ def create_model_lazy(G, c, m, n, VT, alpha):
     
     mod = grb.Model("msf_ssmz_lazy")
     
-    # Create binary variables for vertex assignment
     for u in G.nodes():
         for k in range(0, K):
             x[u, k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"x_{u}_{k}")
@@ -1891,12 +1785,10 @@ def create_model_lazy(G, c, m, n, VT, alpha):
             dif_abs[u, k] = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name=f"dabs_{u}_{k}")
             aux[u, k] = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=-grb.GRB.INFINITY, ub=grb.GRB.INFINITY, name=f"aux_{u}_{k}")
     
-    # Create binary variables for edge selection
     for e in G.edges():
         for k in range(0, K):
             y[e[0], e[1], k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"y_{e[0]}_{e[1]}_{k}")
     
-    # Create auxiliary variables
     for k in range(0, K):
         r[k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"r_{k}")
         z[k] = mod.addVar(vtype=grb.GRB.INTEGER, name=f"z_{k}")
@@ -1906,18 +1798,11 @@ def create_model_lazy(G, c, m, n, VT, alpha):
     H_num = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name="Hnum")
     H_den = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name="Hden")
     
-    # Objective: minimize number of colors used
     mod.setObjective(theta, grb.GRB.MINIMIZE)
     
-    # Constraints: vertex count per color
     for k in range(0, K):
         mod.addConstr(grb.quicksum([x[u, k] for u in G.nodes()]) == z[k], f"num_vertices_color_{k}")
-    #    if k > 0:
-    #        mod.addConstr(r[k] <= r[k - 1])
-    #    else:
-    #        mod.addConstr(r[k] <= 1)
     
-    # Each vertex must have exactly one color
     for u in G.nodes():
         for k in range(0, K):
             mod.addConstr(x[u, k] <= r[k], f"uso_color_{k}_vertice_{u}")
@@ -1934,7 +1819,6 @@ def create_model_lazy(G, c, m, n, VT, alpha):
     
     mod.addConstr(grb.quicksum([r[k] for k in range(0, K)]) == theta, "colores_usados")
     
-    # Edge constraints
     for e in G.edges():
         for k in range(0, K):
             mod.addConstr(y[e[0], e[1], k] + y[e[1], e[0], k] <= x[e[0], k] * x[e[1], k])
@@ -1943,8 +1827,7 @@ def create_model_lazy(G, c, m, n, VT, alpha):
     
     for k in range(0, K):
         mod.addConstr(grb.quicksum(y[e[0], e[1], k] for e in G.edges()) == grb.quicksum(x[u, k] for u in G.nodes()) - r[k])
-    
-    # Homogeneity constraints (quadratic)
+
     M = 10000
     for u in G.nodes():
         for k in range(0, K):
@@ -1961,7 +1844,6 @@ def create_model_lazy(G, c, m, n, VT, alpha):
     mod.addConstr(H_den == ((VT * N) - (VT * theta)) * (1 - alpha), "homogeneidad_den")
     mod.addConstr(H_den >= H_num, "homogeneidad_constr")
     
-    # Store references for callback
     mod._y = y
     mod._x = x
     
@@ -1999,7 +1881,7 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
     if type == 'grid':
         K = m * n
     else:
-        K = G.number_of_nodes() - 1  # Excluding sink node
+        K = G.number_of_nodes() - 1  
     
     N = G.number_of_nodes()
     
@@ -2015,7 +1897,6 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
     
     mod = grb.Model("msf_ssmz_flow")
     
-    # Create binary variables
     for u in G.nodes():
         for k in range(0, K):
             x[u, k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"x_{u}_{k}")
@@ -2025,12 +1906,10 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
                 dif_abs[u, k] = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name=f"dabs_{u}_{k}")
                 aux[u, k] = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=-grb.GRB.INFINITY, ub=grb.GRB.INFINITY, name=f"aux_{u}_{k}")
     
-    # Create edge variables
     for e in G.edges():
         for k in range(0, K):
             y[e[0], e[1], k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"y_{e[0]}_{e[1]}_{k}")
     
-    # Create auxiliary variables
     for k in range(0, K):
         r[k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"r_{k}")
         z[k] = mod.addVar(vtype=grb.GRB.INTEGER, name=f"z_{k}")
@@ -2040,14 +1919,12 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
     H_num = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name="Hnum")
     H_den = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name="Hden")
     
-    # Objective: minimize number of colors
     mod.setObjective(theta, grb.GRB.MINIMIZE)
     
-    # Vertex count constraints
+   
     for k in range(0, K):
         mod.addConstr(grb.quicksum([x[u, k] for u in G.nodes() if u != K]) == z[k], f"num_vertices_color_{k}")
     
-    # Each vertex has exactly one color
     for u in G.nodes():
         if u != K:
             mod.addConstr(grb.quicksum([x[u, k] for k in range(0, K)]) == 1, f"vertice_{u}_un_color")
@@ -2062,7 +1939,7 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
         for k in range(0, K):
             mod.addConstr(y[e[0], e[1], k] <= r[k], f"uso_color_{k}_arista_{e[0]}_{e[1]}")
     
-    # Sink node constraints
+
     for k in range(0, K):
         mod.addConstr(grb.quicksum([y[u, K, k] for u in G.nodes() if u != K]) == r[k], f"sumidero_entrada_{k}")
         mod.addConstr(grb.quicksum([y[K, u, k] for u in G.nodes() if u != K]) == 0, f"sumidero_salida_{k}")
@@ -2072,7 +1949,6 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
     for k in range(0, K):
         mod.addConstr(r[k] <= grb.quicksum([x[u, k] for u in G.nodes() if u != K]), f"color_{k}_tiene_elementos")
     
-    # Edge constraints
     for e in G.edges():
         if e[0] < e[1]:
             for k in range(0, K):
@@ -2081,7 +1957,6 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
     for e in G.edges():
         mod.addConstr(grb.quicksum([y[e[0], e[1], k] for k in range(0, K)]) <= 1, f"arista_{e[0]}_{e[1]}_un_color_maximo")
     
-    # Flow constraints for acyclicity
     M = 10000
     for u in G.nodes():
         if u != K:
@@ -2092,7 +1967,6 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
                 mod.addGenConstrIndicator(x[u, k], 1, p[u, k] - dif_abs[u, k], grb.GRB.EQUAL, 0, "save_abs_" + str(u) + "_" + str(k))
                 mod.addGenConstrIndicator(x[u, k], 0, p[u, k], grb.GRB.EQUAL, 0, "save_abs_b_" + str(u) + "_" + str(k))
     
-    # Topological order constraints to prevent cycles
     for u in G.nodes():
         if u != K:
             for e in G.edges():
@@ -2103,7 +1977,6 @@ def create_model_flow(G, c, m, n, VT, alpha, type='grid'):
             for k in range(0, K):
                 mod.addConstr(V_var[u, k] == 0)
     
-    # Homogeneity constraints
     for k in range(0, K):
         mod.addConstr(media[k] * z[k] == grb.quicksum([dj.get_datos(c, u, n) * x[u, k] for u in G.nodes() if u != K]), f"media_region_{k}")
         mod.addConstr(media[k] <= M * r[k])
@@ -2145,7 +2018,7 @@ def create_model_flow_graph(G, VT, alpha, type='graph'):
         H_num (gurobipy.Var): Numerator of homogeneity constraint
         H_den (gurobipy.Var): Denominator of homogeneity constraint
     """
-    K = G.number_of_nodes() - 1  # Excluding sink node
+    K = G.number_of_nodes() - 1 
     N = max(G.nodes())
     
     x = {}
@@ -2160,7 +2033,6 @@ def create_model_flow_graph(G, VT, alpha, type='graph'):
     
     mod = grb.Model("msf_ssmz_flow_graph")
     
-    # Create binary variables
     for u in G.nodes():
         for k in range(0, K):
             x[u, k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"x_{u}_{k}")
@@ -2170,12 +2042,10 @@ def create_model_flow_graph(G, VT, alpha, type='graph'):
                 dif_abs[u, k] = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name=f"dabs_{u}_{k}")
                 aux[u, k] = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=-grb.GRB.INFINITY, ub=grb.GRB.INFINITY, name=f"aux_{u}_{k}")
     
-    # Create edge variables
     for e in G.edges():
         for k in range(0, K):
             y[e[0], e[1], k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"y_{e[0]}_{e[1]}_{k}")
     
-    # Create auxiliary variables
     for k in range(0, K):
         r[k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"r_{k}")
         z[k] = mod.addVar(vtype=grb.GRB.INTEGER, name=f"z_{k}")
@@ -2185,14 +2055,11 @@ def create_model_flow_graph(G, VT, alpha, type='graph'):
     H_num = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name="Hnum")
     H_den = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name="Hden")
     
-    # Objective: minimize number of colors
     mod.setObjective(theta, grb.GRB.MINIMIZE)
     
-    # Vertex count constraints
     for k in range(0, K):
         mod.addConstr(grb.quicksum([x[u, k] for u in G.nodes() if u != N]) == z[k], f"num_vertices_color_{k}")
     
-    # Each vertex has exactly one color
     for u in G.nodes():
         if u != N:
             mod.addConstr(grb.quicksum([x[u, k] for k in range(0, K)]) == 1, f"vertice_{u}_un_color")
@@ -2207,7 +2074,6 @@ def create_model_flow_graph(G, VT, alpha, type='graph'):
         for k in range(0, K):
             mod.addConstr(y[e[0], e[1], k] <= r[k], f"uso_color_{k}_arista_{e[0]}_{e[1]}")
     
-    # Sink node constraints
     for k in range(0, K):
         mod.addConstr(grb.quicksum([y[u, N, k] for u in G.nodes() if u != N]) == r[k], f"sumidero_entrada_{k}")
         mod.addConstr(grb.quicksum([y[N, u, k] for u in G.nodes() if u != N]) == 0, f"sumidero_salida_{k}")
@@ -2217,7 +2083,6 @@ def create_model_flow_graph(G, VT, alpha, type='graph'):
     for k in range(0, K):
         mod.addConstr(r[k] <= grb.quicksum([x[u, k] for u in G.nodes() if u != N]), f"color_{k}_tiene_elementos")
     
-    # Edge constraints
     for e in G.edges():
         if e[0] < e[1]:
             for k in range(0, K):
@@ -2226,20 +2091,17 @@ def create_model_flow_graph(G, VT, alpha, type='graph'):
     for e in G.edges():
         mod.addConstr(grb.quicksum([y[e[0], e[1], k] for k in range(0, K)]) <= 1, f"arista_{e[0]}_{e[1]}_un_color_maximo")
     
-    # Flow constraints for acyclicity
     M = 10000
     for u in G.nodes():
         if u != N:
             for k in range(0, K):
                 mod.addConstr(grb.quicksum([y[u, q, k] for q in G.neighbors(u)]) == x[u, k], f"flujo_salida_{u}_{k}")
-                # For graph mode, get sample value directly from node attribute
                 sample_val = G.nodes[u]['sample'] if 'sample' in G.nodes[u] else 0
                 mod.addConstr(aux[u, k] == sample_val - media[k])
                 mod.addGenConstrAbs(dif_abs[u, k], aux[u, k], "abs_" + str(u) + "_" + str(k))
                 mod.addGenConstrIndicator(x[u, k], 1, p[u, k] - dif_abs[u, k], grb.GRB.EQUAL, 0, "save_abs_" + str(u) + "_" + str(k))
                 mod.addGenConstrIndicator(x[u, k], 0, p[u, k], grb.GRB.EQUAL, 0, "save_abs_b_" + str(u) + "_" + str(k))
     
-    # Topological order constraints to prevent cycles
     for u in G.nodes():
         if u != N:
             for e in G.edges():
@@ -2250,7 +2112,6 @@ def create_model_flow_graph(G, VT, alpha, type='graph'):
             for k in range(0, K):
                 mod.addConstr(V_var[u, k] == 0)
     
-    # Homogeneity constraints
     for k in range(0, K):
         mod.addConstr(media[k] * z[k] == grb.quicksum([G.nodes[u]['sample'] * x[u, k] for u in G.nodes() if u != N]), f"media_region_{k}")
         mod.addConstr(media[k] <= M * r[k])
@@ -2286,7 +2147,7 @@ def create_model_lazy_graph(G, VT, alpha):
         H_num (gurobipy.Var): Numerator of homogeneity constraint
         H_den (gurobipy.Var): Denominator of homogeneity constraint
     """
-    K = G.number_of_nodes()  # Number of colors = number of vertices
+    K = G.number_of_nodes()  
     x = {}
     y = {}
     z = {}
@@ -2298,7 +2159,6 @@ def create_model_lazy_graph(G, VT, alpha):
     
     mod = grb.Model("msf_ssmz_lazy_graph")
 
-    # Create binary variables for vertex assignment
     for u in G.nodes():
         for k in range(0, K):
             x[u, k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"x_{u}_{k}")
@@ -2306,12 +2166,10 @@ def create_model_lazy_graph(G, VT, alpha):
             dif_abs[u, k] = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name=f"dabs_{u}_{k}")
             aux[u, k] = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=-grb.GRB.INFINITY, ub=grb.GRB.INFINITY, name=f"aux_{u}_{k}")
     
-    # Create binary variables for edge selection
     for e in G.edges():
         for k in range(0, K):
             y[e[0], e[1], k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"y_{e[0]}_{e[1]}_{k}")
     
-    # Create auxiliary variables
     for k in range(0, K):
         r[k] = mod.addVar(vtype=grb.GRB.BINARY, name=f"r_{k}")
         z[k] = mod.addVar(vtype=grb.GRB.INTEGER, name=f"z_{k}")
@@ -2321,14 +2179,11 @@ def create_model_lazy_graph(G, VT, alpha):
     H_num = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name="Hnum")
     H_den = mod.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=grb.GRB.INFINITY, name="Hden")
     
-    # Objective: minimize number of colors used
     mod.setObjective(theta, grb.GRB.MINIMIZE)
     
-    # Constraints: vertex count per color
     for k in range(0, K):
         mod.addConstr(grb.quicksum([x[u, k] for u in G.nodes()]) == z[k], f"num_vertices_color_{k}")
     
-    # Each vertex must have exactly one color
     for u in G.nodes():
         for k in range(0, K):
             mod.addConstr(x[u, k] <= r[k], f"uso_color_{k}_vertice_{u}")
@@ -2345,7 +2200,6 @@ def create_model_lazy_graph(G, VT, alpha):
     
     mod.addConstr(grb.quicksum([r[k] for k in range(0, K)]) == theta, "colores_usados")
     
-    # Edge constraints
     for e in G.edges():
         for k in range(0, K):
             mod.addConstr(y[e[0], e[1], k] + y[e[1], e[0], k] <= x[e[0], k] * x[e[1], k],f"anticolor_{e[0]}_{e[1]}_{k}")
@@ -2357,7 +2211,6 @@ def create_model_lazy_graph(G, VT, alpha):
         mod.addConstr(grb.quicksum(y[e[0], e[1], k] for e in G.edges()) == 
                       grb.quicksum(x[u, k] for u in G.nodes()) - r[k],f"uso_color_{k}_aristas")
     
-    # Homogeneity constraints (quadratic)
     M = 10000
     for u in G.nodes():
         sample_val = G.nodes[u]['sample'] if 'sample' in G.nodes[u] else 0
@@ -2375,7 +2228,6 @@ def create_model_lazy_graph(G, VT, alpha):
     mod.addConstr(H_den == ((VT * K) - (VT * theta)) * (1 - alpha), "homogeneidad_den")
     mod.addConstr(H_den >= H_num, "homogeneidad_constr")
     
-    # Store references for callback
     mod._y = y
     mod._x = x
     
@@ -2405,7 +2257,6 @@ def extract_solution(mod, G, K, x, y=None, model_type="flow"):
     lista_nodos = {}
     lista_arcos = {}
     
-    # Extract nodes
     for k in range(0, K):
         nodos_k = []
         for u in G.nodes():
@@ -2420,12 +2271,10 @@ def extract_solution(mod, G, K, x, y=None, model_type="flow"):
         else:
             lista_nodos[k] = []
     
-    # Extract edges if y is provided
     if y is not None:
         for k in range(0, K):
             aristas_k = []
             for e in G.edges():
-                # Check both directions since graph is directed
                 if (e[0], e[1], k) in y and e[0] < e[1]:
                     try:
                         if hasattr(y[e[0], e[1], k], 'x') and abs(y[e[0], e[1], k].x) >= 0.01:
@@ -2433,12 +2282,11 @@ def extract_solution(mod, G, K, x, y=None, model_type="flow"):
                                 aristas_k.append(e)
                     except:
                         pass
-                # Also check reverse direction
                 if (e[1], e[0], k) in y and e[0] < e[1]:
                     try:
                         if hasattr(y[e[1], e[0], k], 'x') and abs(y[e[1], e[0], k].x) >= 0.01:
                             if e[0] != K and e[1] != K:
-                                if e not in aristas_k:  # Avoid duplicates
+                                if e not in aristas_k: 
                                     aristas_k.append(e)
                     except:
                         pass
@@ -2472,7 +2320,6 @@ def extract_solution_graph(mod, G, K, x, y=None, model_type="flow"):
         N=max(G.nodes() )
     else:
         N=max(G.nodes())
-    # Extract nodes
     for k in range(0, K):
         nodos_k = []
         for u in G.nodes():
@@ -2493,22 +2340,19 @@ def extract_solution_graph(mod, G, K, x, y=None, model_type="flow"):
             lista_nodos[k] = nodos_k
         else:
             lista_nodos[k] = []
-    
-    # Extract edges if y is provided
+ 
     if y is not None:
         for k in range(0, K):
             aristas_k = []
             for e in G.edges():
                 if model_type=="flow":
                     if e[0] != N and e[1] != N:
-                        # Check forward direction
                         if (e[0], e[1], k) in y:
                             try:
                                 if hasattr(y[e[0], e[1], k], 'x') and abs(y[e[0], e[1], k].x) >= 0.01:
                                     aristas_k.append((e[0], e[1]))
                             except:
                                 pass
-                        # Check reverse direction
                         if (e[1], e[0], k) in y:
                             try:
                                 if hasattr(y[e[1], e[0], k], 'x') and abs(y[e[1], e[0], k].x) >= 0.01:
@@ -2523,7 +2367,6 @@ def extract_solution_graph(mod, G, K, x, y=None, model_type="flow"):
                                     aristas_k.append((e[0], e[1]))
                             except:
                                 pass
-                        # Check reverse direction
                     if (e[1], e[0], k) in y:
                             try:
                                 if hasattr(y[e[1], e[0], k], 'x') and abs(y[e[1], e[0], k].x) >= 0.01:
@@ -2657,7 +2500,6 @@ def run_heuristic_only(m, n, c, VT, alpha, heuristic_name, data_file, draw_flag,
         G_heuristic = create_graph_noaux(m, n, c)
         heur_func = heuristic_h1 if heuristic_name == "h1" else heuristic_h2
     else:
-        # Load planar graph
         G_heuristic, n_graph, m_graph = load_data_graph(data_file, 'lazy', add_sink=False)
         if heuristic_name == "h1":
             heur_func = heuristic_h1_graph
@@ -2689,11 +2531,9 @@ def run_heuristic_only(m, n, c, VT, alpha, heuristic_name, data_file, draw_flag,
             dibujo_heuristic(f"{dibname}_graph", G_heuristic, m, n, sol, aristas, 789123)
             dibujo(f"{dibname}_rec", m, n, sol, 789123)
         else:
-            # For planar graphs, use the graph drawing function
             dibujo_graph(f"{dibname}_graph", G_heuristic, sol, aristas, method='tikz', seed=789123)
         print(f"\n  Graphics saved to: {dibname}_graph.pdf")
     
-    # Generate report
     if output_flag:
         output_file = os.path.join(resultados_dir, f"{basename}_{alpha}_{heuristic_name}_{graph_type}_report.txt")
         execution_info = {
@@ -2761,11 +2601,9 @@ def run_heuristic_only_graph(G, VT, alpha, heuristic_name, data_file, draw_flag,
         sol, aristas, iterations = heuristic_h2_graph(G, VT, alpha)
     heur_time = time.time() - inicio
     
-    # Calculate objective and homogeneity
     n_components = len(sol)
     theta = n_components
     
-    # Calculate H value
     st = dj.sol_graph(G, sol, 'lazy')
     st.up_vars()
     valorH = st.calcH(VT)
@@ -2861,7 +2699,6 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
     # GRID MODE (Original functionality)
     # ========================================================================
     if graph_type == 'grid':
-        # Select graph type
         if model_type == "lazy":
             G_und = create_graph_noaux(m, n, c)
             K = m * n
@@ -2873,7 +2710,6 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
         
         print(f"Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
         
-        # Create model
         if model_type == "lazy":
             mod, x, y, r, z, theta, media, p, dif_abs, aux, H_num, H_den = create_model_lazy(G, c, m, n, VT, alpha)
             use_callback = True
@@ -2890,7 +2726,6 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
         heuristic_theta = 0
         heuristic_h = 0
         
-        # Apply warm start if heuristic is specified
         if heuristic_name:
             print("\nGenerating initial solution with heuristic...")
             G_heuristic = create_graph_noaux(m, n, c)
@@ -2905,7 +2740,6 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
             print(f"  Heuristic completed in {heur_time:.2f}s")
             print(f"  Components: {len(sol)}, Iterations: {iterations}")
             
-            # Evaluate heuristic solution
             st_heur = dj.sol_no_lineas(sol, m, n)
             st_heur.up_vars(c)
             heuristic_theta = st_heur.fobj(VT, alpha)
@@ -2917,16 +2751,13 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
                 os.system("rm *.aux")
                 os.system("rm *.log")
             
-            # Apply warm start
             warm_start_heuristic(G, x, y, r, z, theta, sol, aristas_heur, K, model_type, mod, VT)
             verify_warm_start_feasibility(G, mod, x, y, r, z, theta, sol, aristas_heur, K, model_type)
         
         else:
-            # No warm start - use trivial solution
             print("\nNo heuristic specified. Applying trivial warm start...")
             warm_start_trivial(G, x, y, r, z, theta, len(G.nodes()), model_type,graph_type)
         
-        # Configure execution
         logfile = os.path.join(resultados_dir, f"{basename}_{alpha}_{model_type}_{heuristic_name if heuristic_name else 'no_ws'}_grid.log")
         dibname = os.path.join(resultados_dir, f"{basename}_{alpha}_{model_type}_{heuristic_name if heuristic_name else 'no_ws'}_grid")
         
@@ -2934,13 +2765,13 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
         if available_time < 60:
             available_time = 60
         
-        # Solve
+
         print("\nSolving optimization model...")
         modelo_inicio = time.time()
         mod = configure_and_solve(mod, available_time, logfile, use_callback, callback_func)
         modelo_time = time.time() - modelo_inicio
         
-        # Extract solution
+
         lista_nodos, lista_arcos = extract_solution(mod, G, K, x, y, model_type)
         if len(lista_nodos) > 0:
             st = dj.sol_no_lineas(lista_nodos, m, n)
@@ -2951,7 +2782,7 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
             theta = 0
             valorH = 0
         
-        # Get solver info
+
         gap = mod.MIPGap if hasattr(mod, 'MIPGap') else None
         status = mod.Status
         
@@ -2962,8 +2793,7 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
         print(f"  - Time: {modelo_time:.2f}s")
         if gap is not None:
             print(f"  - Gap: {gap:.6f}")
-        
-        # Generate graphics
+
         if draw_flag and len(lista_nodos) > 0:
             dibujo2(f"{dibname}_graph", G, m, n, lista_nodos, lista_arcos, 789123)
             dibujo(f"{dibname}_rec", m, n, lista_nodos, 789123)
@@ -2971,7 +2801,7 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
             os.system("rm *.aux")
             os.system("rm *.log")
         
-        # Generate convergence plot if flag is set
+
         if plot_flag:
             print("\nGenerating convergence plots...")
             plot_basename = os.path.join(resultados_dir, f"{basename}_{alpha}_{model_type}_{heuristic_name if heuristic_name else 'no_ws'}_grid_convergence")
@@ -2989,7 +2819,6 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
             improvement = ((len(sol) - theta) / len(sol)) * 100
             print(f"  - Improvement: {len(sol)} -> {theta} ({improvement:.1f}%)")
         
-        # Generate report
         if output_flag:
             if heuristic_name:
                 report_name = f"{basename}_{alpha}_{heuristic_name}_{model_type}_grid"
@@ -3039,21 +2868,19 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
     # GRAPH MODE (New functionality for planar graphs)
     # ========================================================================
     else:
-        # Load planar graph
         print("\nLoading planar graph...")
         G_und, n_graph, m_graph = load_data_graph(data_file, model_type, add_sink=(model_type == "flow"))
         G = G_und.to_directed()
         
-        # Determine K (number of colors)
         if model_type == "lazy":
             K = G.number_of_nodes()
         else:
-            K = G.number_of_nodes() - 1  # Excluding sink node
+            K = G.number_of_nodes() - 1  
         
         print(f"Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
         print(f"K (colors): {K}")
         
-        # Create model for graph
+  
         if model_type == "lazy":
             mod, x, y, r, z, theta, media, p, dif_abs, aux, H_num, H_den = create_model_lazy_graph(G, VT, alpha)
             use_callback = True
@@ -3070,10 +2897,9 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
         heuristic_theta = 0
         heuristic_h = 0
         
-        # Apply warm start if heuristic is specified
+
         if heuristic_name:
             print("\nGenerating initial solution with heuristic...")
-            # Use the original graph (without sink) for heuristic
             G_heuristic, _, _ = load_data_graph(data_file, 'lazy', add_sink=False)
             inicio = time.time()
             
@@ -3086,7 +2912,6 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
             print(f"  Heuristic completed in {heur_time:.2f}s")
             print(f"  Components: {len(sol)}, Iterations: {iterations}")
             
-            # Evaluate heuristic solution
             st_heur = dj.sol_graph(G_heuristic, sol, 'lazy')
             st_heur.up_vars()
             heuristic_theta = len(sol)
@@ -3099,16 +2924,13 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
                 os.system("rm *.aux")
                 os.system("rm *.log")
             
-            # Apply warm start
             warm_start_heuristic(G, x, y, r, z, theta, sol, aristas_heur, K, model_type, mod, VT)
             verify_warm_start_feasibility(G, mod, x, y, r, z, theta, sol, aristas_heur, K, model_type)
         
         else:
-            # No warm start - use trivial solution
             print("\nNo heuristic specified. Applying trivial warm start...")
             warm_start_trivial(G, x, y, r, z, theta, K, model_type,graph_type)
         
-        # Configure execution
         logfile = os.path.join(resultados_dir, f"{basename}_{alpha}_{model_type}_{heuristic_name if heuristic_name else 'no_ws'}_graph.log")
         dibname = os.path.join(resultados_dir, f"{basename}_{alpha}_{model_type}_{heuristic_name if heuristic_name else 'no_ws'}_graph")
         
@@ -3116,17 +2938,16 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
         if available_time < 60:
             available_time = 60
         
-        # Solve
+
         print("\nSolving optimization model...")
         modelo_inicio = time.time()
         mod = configure_and_solve(mod, available_time, logfile, use_callback, callback_func)
         modelo_time = time.time() - modelo_inicio
         
-        # Extract solution
+
         lista_nodos, lista_arcos = extract_solution_graph(mod, G, K, x, y, model_type)
         
         if len(lista_nodos) > 0:
-            # Calculate objective and homogeneity
             theta = sum(1 for k in lista_nodos.values() if len(k) > 0)
             st = dj.sol_graph(G, list(lista_nodos.values()), 'lazy')
             st.up_vars()
@@ -3135,7 +2956,6 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
             theta = 0
             valorH = 0
         
-        # Get solver info
         gap = mod.MIPGap if hasattr(mod, 'MIPGap') else None
         status = mod.Status
         ncomponents=sum(1 for k in lista_nodos.values() if len(k) > 0)
@@ -3152,15 +2972,7 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
             print(f"  - Status: {status}")
         if gap is not None:
             print(f"  - Gap: {gap:.6f}")
-        #for k in range(0, K):
-        #    G=nx.Graph()
-        #    if len(lista_arcos[k]) > 0:
-        #        for e in lista_arcos[k]:
-        #            G.add_edge(e[0], e[1])
-        #        print("ES CONEXA",nx.is_connected(G))
-        # Generate graphics
         if draw_flag and len(lista_nodos) > 0:
-            # Use the original graph for drawing
             G_draw, _, _ = load_data_graph(data_file, 'lazy', add_sink=False)
             dibujo_graph(f"{dibname}_graph", G_draw, lista_nodos, lista_arcos, method='tikz', seed=789123)
             dibujo_graph(f"{dibname}_graph", G_draw, lista_nodos, lista_arcos, method='graphviz', seed=789123)
@@ -3169,7 +2981,6 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
             os.system("rm *.aux")
             os.system("rm *.log")
         
-        # Generate convergence plot if flag is set
         if plot_flag:
             print("\nGenerating convergence plots...")
             plot_basename = os.path.join(resultados_dir, f"{basename}_{alpha}_{model_type}_{heuristic_name if heuristic_name else 'no_ws'}_graph_convergence")
@@ -3186,8 +2997,7 @@ def run_model(model_type, heuristic_name, time_limit, m, n, c, VT, alpha,
         if heuristic_name and sol and theta > 0:
             improvement = ((len(sol) - theta) / len(sol)) * 100
             print(f"  - Improvement: {len(sol)} -> {theta} ({improvement:.1f}%)")
-        
-        # Generate report
+
         if output_flag:
             if heuristic_name:
                 report_name = f"{basename}_{alpha}_{heuristic_name}_{model_type}_graph"
@@ -3256,7 +3066,6 @@ def configure_and_solve(mod, time_limit, logfile, use_callback=False, callback_f
     mod.setParam("PreQLinearize", 0)
     mod.setParam("PrePasses", 1)
     mod.setParam("ScaleFlag", 2)
-    #mod.setParam('MIPFocus', 1)
     mod.setParam('TimeLimit', time_limit)
     mod.setParam('OutputFlag', 1)
     mod.setParam("LogFile", logfile)
@@ -3305,7 +3114,6 @@ def load_data(data_file):
                 break
             l = l + 1
     
-    # Auto-generate incidence matrix from grid dimensions
     A, L, S = dj.leerInc(None, m, n)
     print(f"  Incidence matrix auto-generated for {m}x{n} grid ({L} edges, {S} vertices)")
     
@@ -3339,15 +3147,14 @@ def load_data_graph(data_file, model_type, add_sink=True):
     
     if len(lines) < 2:
         raise ValueError(f"File {data_file} has insufficient data")
-    
-    # First line: n m
+   
     parts = lines[0].split()
     n = int(parts[0])
     m = int(parts[1])
     
     G = nx.Graph()
     
-    # Read vertices (n lines)
+
     line_idx = 1
     for i in range(n):
         if line_idx >= len(lines):
@@ -3361,8 +3168,7 @@ def load_data_graph(data_file, model_type, add_sink=True):
         value = float(parts[1])
         G.add_node(v_id, sample=value)
         line_idx += 1
-    
-    # Read edges (m lines)
+
     for i in range(m):
         if line_idx >= len(lines):
             raise ValueError(f"Expected {m} edges, got {i}")
@@ -3373,21 +3179,19 @@ def load_data_graph(data_file, model_type, add_sink=True):
         
         u = int(parts[0])
         v = int(parts[1])
-        
-        # Edge cost: absolute difference between samples
+  
         cost = round(abs(G.nodes[u]['sample'] - G.nodes[v]['sample']), 4)
         G.add_edge(u, v, costo=cost)
         line_idx += 1
     
-    # Verify graph is connected
+
     if not nx.is_connected(G):
         print(f"  WARNING: Graph is not connected! ({nx.number_connected_components(G)} components)")
     
-    # Add sink node if required (for flow model)
+
     if add_sink:
         sink_id = max(G.nodes()) + 1
         G.add_node(sink_id, sample=0.0)
-        # Connect all vertices to sink with zero cost
         for u in G.nodes():
             if u != sink_id:
                 G.add_edge(u, sink_id, costo=0.0)
@@ -3488,7 +3292,6 @@ def main():
         print_usage()
         sys.exit(1)
     
-    # First argument: graph type (grid or graph)
     graph_type = sys.argv[1].lower()
     if graph_type not in ['grid', 'graph']:
         print(f"ERROR: Unknown graph type '{graph_type}'. Use 'grid' or 'graph'.")
@@ -3509,14 +3312,13 @@ def main():
     print(f"  Data: {data_file}")
     print(f"  Alpha: {alpha}")
     
-    # Parse remaining arguments
     draw_flag = False
     output_flag = False
     plot_flag = False
-    time_limit = 1800  # default
+    time_limit = 1800  
     heuristic_name = None
     
-    # Process remaining arguments (starting from index 5)
+
     idx = 5
     while idx < len(sys.argv):
         arg = sys.argv[idx].lower()
@@ -3536,17 +3338,15 @@ def main():
     # GRID MODE (Original functionality)
     # ========================================================================
     if graph_type == 'grid':
-        # Load data and auto-generate incidence matrix
         m, n, c, VT, incident = load_data(data_file)
         print(f"  Grid: {m} x {n} = {m * n} nodes")
         print(f"  VT: {VT:.6f}")
         
-        # Heuristic only modes
+
         if mode in ["h1", "h2"]:
             run_heuristic_only(m, n, c, VT, alpha, mode, data_file, draw_flag, output_flag, plot_flag, graph_type='grid')
             return
-        
-        # Model modes (lazy or flow)
+
         if mode not in ["lazy", "flow"]:
             print(f"\nERROR: Unknown mode '{mode}'")
             print_usage()
@@ -3559,18 +3359,15 @@ def main():
     # GRAPH MODE (New functionality for planar graphs)
     # ========================================================================
     else:
-        # Load planar graph
         G, n_graph, m_graph = load_data_graph(data_file, 'lazy' if mode in ['h1', 'h2', 'lazy'] else 'flow', 
                                                add_sink=(mode == 'flow'))
         print(f"  Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
         
-        # Calculate VT (total variance) for the graph
         if mode == "flow":
             sink_id = max(G.nodes())
-            samples = [G.nodes[u]['sample'] for u in G.nodes() if u!=sink_id]  # Exclude sink
+            samples = [G.nodes[u]['sample'] for u in G.nodes() if u!=sink_id]  
         else:
             samples = [G.nodes[u]['sample'] for u in G.nodes()]
-        #print(f"  Samples: {samples}")
         mean = np.mean(samples)
         print(f"  Mean: {mean:.6f}")
         print(f"  n_graph: {n_graph}")
@@ -3579,18 +3376,15 @@ def main():
         else:
             VT = np.sum([(s - mean) ** 2 for s in samples])/n_graph
         print(f"  VT: {VT:.6f}")
-        # Heuristic only modes
         if mode in ["h1", "h2"]:
             run_heuristic_only_graph(G, VT, alpha, mode, data_file, draw_flag, output_flag, plot_flag)
             return
         
-        # Model modes (lazy or flow)
         if mode not in ["lazy", "flow"]:
             print(f"\nERROR: Unknown mode '{mode}'")
             print_usage()
             sys.exit(1)
         
-        # For graph mode, we don't need m, n, c
         m, n = 0, 0
         c = {}
         
